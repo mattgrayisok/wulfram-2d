@@ -1,27 +1,32 @@
-var world = {};
+var Renderer 		= require('./Renderer');
+var ClientWorld 	= require('./ClientWorld');
 
+var world = {};
 	//When loading, we store references to our
 	//drawing canvases, and initiate a game instance.
-window.onload = function(){
 
+var ClientCore = function(){
 
-	var renderer = new Renderer();
+	this.world = {};
+
+}
+
+ClientCore.prototype.init = function(){
+
+	var renderer = new Renderer.Renderer();
 	renderer.initialise();
 
 	var socket = io();
 	
 	socket.on('connected', function(msg){
 	    //Create our game client instance.
-		world = new World(false, socket, renderer);
-
-		//Start the loop
-		world.update( new Date().getTime() );
+		world = new ClientWorld.ClientWorld(renderer, socket);
 
 		socket.on('message', function(message){
 			switch (message.type){
 				case 3:
 					//State message
-					world.clientUpdateStatus(message.pl);
+					world.receivedServerState(message.pl);
 					break;
 				default:
 					break;
@@ -29,5 +34,6 @@ window.onload = function(){
 		});
 	});
 
+}
 
-}; //window.onload
+exports.ClientCore = ClientCore;

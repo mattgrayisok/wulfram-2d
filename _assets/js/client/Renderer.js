@@ -29,3 +29,5 @@ Renderer.prototype.render = function(){
 	this.renderer.render(this.stage);
 
 }
+
+exports.Renderer = Renderer;
