@@ -79,8 +79,7 @@ ServerWorld.prototype.updateTick = function(){
     		return;
     	}
 		message.pl.physicsTick = self.physicsTickCounter - player.physicsTickCounterOffset;
-    	//console.log('It is tick '+self.physicsTickCounter+' Sending player tick '+message.pl.physicsTick);
-		message.pl.you = player.playerId;
+    	message.pl.you = player.playerId;
     	player.socket.emit('message', message);
     });
 

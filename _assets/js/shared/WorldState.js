@@ -64,4 +64,55 @@ WorldState.prototype.removePlayersNotIn = function(list){
 	}
 }
 
+WorldState.prototype.setState = function(state, exclude){
+	console.log('setState');
+	var self = this;
+
+	//Players
+	for(var playerIndex in state.players){
+		var playerState = state.players[playerIndex];
+		var player = self.getPlayer(playerState.playerId);
+		player.setState(playerState);
+	}
+
+}
+
+WorldState.prototype.setStateByInterpolation = function(state1, state2, percent, exclude){
+	var self = this;
+
+	//Players
+	self.findMatchingStatesFromTwoStateCollections(state1.players, state2.players, "playerId", function(state1, state2, propertyValue){
+		var player = self.getPlayer(propertyValue);
+		if(typeof player == 'undefined' || player.playerId == exclude) return;
+		player.setStateByInterpolation(state1, state2, percent);
+	});
+
+}
+
+WorldState.prototype.setStateByExtrapolation = function(state1, state2, percent, exclude){
+	var self = this;
+
+	//Players
+	self.findMatchingStatesFromTwoStateCollections(state1.players, state2.players, "playerId", function(state1, state2, propertyValue){
+		var player = self.getPlayer(propertyValue);
+		if(typeof player == 'undefined' || player.playerId == exclude) return;
+		player.setStateByExtrapolation(state1, state2, percent);
+	});
+
+}
+
+WorldState.prototype.findMatchingStatesFromTwoStateCollections = function(state1Collection, state2Collection, propertyToCompare, callback){
+	
+	for(var state1Index in state1Collection){
+		var state1Object = state1Collection[state1Index];
+		for(var state2Index in state2Collection){
+			if(state1Object[propertyToCompare] == state2Collection[state2Index][propertyToCompare]){
+				callback(state1Object, state2Collection[state2Index], state1Object[propertyToCompare]);
+				break;
+			}
+		}
+	}
+
+}
+
 exports.WorldState = WorldState;

@@ -120,7 +120,13 @@ ClientWorld.prototype.renderTick = function(){
 		}
 	});
 
-	//TODO: delete here?
+	//Delete any old ones
+	for(var i = self.stateBuffer.length - 1; i >= 0; i--){
+		var el = self.stateBuffer[i];
+		if("deleteMe" in el && el.deleteMe){
+			self.stateBuffer.splice(i, 1);
+		} 
+	}
 
 	if(justAboveIndex !== false){
 		if(justBelowIndex !== false){
@@ -129,29 +135,16 @@ ClientWorld.prototype.renderTick = function(){
 			var percentIn = (expectedServerTime - justBelow.time) / timeDiff;
 			//For all values, find the difference, multiply by percentIn and add to below state
 
-			for(var jBIndex in justBelow.players){
-				var jBThisPlayer = justBelow.players[jBIndex];
-				if(jBThisPlayer.playerId != this.me.playerId){
-					var player = this.worldState.getPlayer(jBThisPlayer.playerId);
-					var jAThisPlayer = false;
-					for(var jAIndex in justAbove.players){
-						if(jBThisPlayer.playerId == justAbove.players[jAIndex].playerId){
-							jAThisPlayer = justAbove.players[jAIndex];
-							break;
-						}
-					}
-					player.setStateByInterpolation(jBThisPlayer, jAThisPlayer, percentIn);
-				}
-			}
+			this.worldState.setStateByInterpolation(justBelow, justAbove, percentIn, this.me.playerId);
 
 		}else{
-			//We have an above state but no below state - should never happen
+			//We have an above state but no below state - should never happen as we always keep two
 			//Just set state as the above state?
 			alert('Seem to have travelled into the past, which is weird');
 		}
 	}else{
 		if(justBelowIndex !== false){
-			//We have no above state, but do have a below state - should never happen
+			//We have no above state, but do have a below state - should never happen as below is derived from above
 			//Just set state to be below state
 			alert('Seem to have a past but no future =/');
 		}else{
@@ -159,31 +152,21 @@ ClientWorld.prototype.renderTick = function(){
 			if(this.stateBuffer.length >= 2){
 				//There are no states in front of expected time, but there are states to use
 				//Extrapolate out from the most recent two states
+				justBelow = this.stateBuffer[this.stateBuffer.length-2];
+				justAbove = this.stateBuffer[this.stateBuffer.length-1];
 				var timeDiff = justAbove.time - justBelow.time;
 				var percentPast = (expectedServerTime - justAbove.time) / timeDiff;
-				//For all values, find the difference, mutiply by percent past, add to above state
-
-				for(var jBIndex in justBelow.players){
-					var jBThisPlayer = justBelow.players[jBIndex];
-					if(jBThisPlayer.playerId != this.me.playerId){
-						var player = this.worldState.getPlayer(jBThisPlayer.playerId);
-						var jAThisPlayer = false;
-						for(var jAIndex in justAbove.players){
-							if(jBThisPlayer.playerId == justAbove.players[jAIndex].playerId){
-								jAThisPlayer = justAbove.players[jAIndex];
-								break;
-							}
-						}
-						player.setStateByExtrapolation(jBThisPlayer, jAThisPlayer, percentIn);
-					}
-				}
-
+				
+				this.worldState.setStateByExtrapolation(justBelow, 
+														justAbove, 
+														percentPast, this.me.playerId);
 
 			}else if(this.stateBuffer.length == 1){
 				//Just use this state
+				this.worldState.setState(this.stateBuffer[0], this.me.playerId);
 			}else{
 				//There are no states - should never happen
-				alert('No states - should never happen - die');
+				//Just don't change anything I suppose
 			}
 		}
 	}
