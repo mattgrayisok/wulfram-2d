@@ -2,7 +2,7 @@ var Config = function(){
 
 	this.physicsClock_ms = 15;
 	this.renderClock_ms = 25;
-	this.serverEmitClock_ms = 250;
+	this.serverEmitClock_ms = 500;
 	
 	this.inputToSimulationBuffer = 5; //A server side buffer for input events from the clients
 	this.clientSideRenderBuffer = 2;

@@ -66,6 +66,7 @@ ServerWorld.prototype.updateTick = function(){
 	var self = this;
 
 	var snapShot = this.worldState.toMessage();
+	snapShot.time = new Date().getTime();
 
     var message = {
     	type : 3,

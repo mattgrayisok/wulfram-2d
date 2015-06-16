@@ -175,6 +175,28 @@ Player.prototype.setState = function(state){
 	}
 }
 
+Player.prototype.setStateByInterpolation = function(state1, state2, percent){
+	//console.log(Matter.Body);
+	
+	Matter.Body.set(this.body, 'position', global.helpers.interpolateVector(state1.position, state2.position, percent));
+	Matter.Body.set(this.body, 'angle', global.helpers.interpolate(state1.angle, state2.angle, percent));
+
+	if(this.renderer !== null){
+		this.updateSpriteFromBody();
+	}
+}
+
+Player.prototype.setStateByExtrapolation = function(state1, state2, percent){
+	//console.log(Matter.Body);
+	
+	Matter.Body.set(this.body, 'position', global.helpers.extrapolateVector(state1.position, state2.position, percent));
+	Matter.Body.set(this.body, 'angle', global.helpers.extrapolate(state1.angle, state2.angle, percent));
+
+	if(this.renderer !== null){
+		this.updateSpriteFromBody();
+	}
+}
+
 Player.prototype.toMessage = function(){
 	return {
 		playerId : this.playerId,

@@ -5,8 +5,11 @@ var http 		= require('http').Server(app);
 var io 			= require('socket.io')(http);
 var ServerCore 	= require('./server/ServerCore');
 var Config 		= require('./shared/Config');
+var Helpers 		= require('./shared/Helpers');
+
 
 global.config = new Config.Config();
+global.helpers = new Helpers.Helpers();
 
 function init() {
 	app.get('/', function(req, res){

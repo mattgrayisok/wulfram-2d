@@ -12,6 +12,8 @@ var ClientWorld = function(renderer, socket){
 	this.physicsTickCounter = 0;
 
 	this.worldState = new WorldState.WorldState();
+	this.stateBuffer = [];
+	this.stateMilliOffset = false;
 
 	this.physicsEngine = Matter.Engine.create(document.getElementById('test'), {
 		enableSleeping: false,
@@ -74,10 +76,127 @@ ClientWorld.prototype.physicsTick = function(){
 }
 
 ClientWorld.prototype.renderTick = function(){
+
+	var self = this;
+
+	//Not set offset yet and no buffer filled
+	if(this.stateMilliOffset === false && this.stateBuffer.length < global.config.clientSideRenderBuffer){
+		// ? 
+		return;
+	}
+
+	//Buffer is filled enough. We need to set the offset from the first state in the buffer
+	if(this.stateMilliOffset === false){
+		this.stateMilliOffset = new Date().getTime() - this.stateBuffer[0].time;
+	}
+
+	//Find what we expect the server time to be.
+	var expectedServerTime = new Date().getTime() - this.stateMilliOffset;
+
+	//Find the two states that surround that time
+	var justBelowIndex = false;
+	var justAboveIndex = false;
+	var justBelow = false;
+	var justAbove = false;
+
+
+	_.each(this.stateBuffer, function(el, ind){
+		//If we are yet to find a state with a high enough time
+		if(expectedServerTime < el.time && justAboveIndex === false){
+			//Found the first one above expected time
+			if(ind > 0){
+				justBelowIndex = ind - 1;
+				justBelow = self.stateBuffer[justBelowIndex];
+				justBelow.deleteMe = false;
+			}
+			justAboveIndex = ind;
+			justAbove = el;
+		}else if(justAboveIndex === false){
+			//Here we'll only see states pre expected server time
+			//Keep the final two states, even if they are in the past
+			if(ind < self.stateBuffer.length - 2){
+				el.deleteMe = true;
+			}
+		}
+	});
+
+	//TODO: delete here?
+
+	if(justAboveIndex !== false){
+		if(justBelowIndex !== false){
+			//We have an above state and a below state. Just interpolate between the two
+			var timeDiff = justAbove.time - justBelow.time;
+			var percentIn = (expectedServerTime - justBelow.time) / timeDiff;
+			//For all values, find the difference, multiply by percentIn and add to below state
+
+			for(var jBIndex in justBelow.players){
+				var jBThisPlayer = justBelow.players[jBIndex];
+				if(jBThisPlayer.playerId != this.me.playerId){
+					var player = this.worldState.getPlayer(jBThisPlayer.playerId);
+					var jAThisPlayer = false;
+					for(var jAIndex in justAbove.players){
+						if(jBThisPlayer.playerId == justAbove.players[jAIndex].playerId){
+							jAThisPlayer = justAbove.players[jAIndex];
+							break;
+						}
+					}
+					player.setStateByInterpolation(jBThisPlayer, jAThisPlayer, percentIn);
+				}
+			}
+
+		}else{
+			//We have an above state but no below state - should never happen
+			//Just set state as the above state?
+			alert('Seem to have travelled into the past, which is weird');
+		}
+	}else{
+		if(justBelowIndex !== false){
+			//We have no above state, but do have a below state - should never happen
+			//Just set state to be below state
+			alert('Seem to have a past but no future =/');
+		}else{
+			//We have neither
+			if(this.stateBuffer.length >= 2){
+				//There are no states in front of expected time, but there are states to use
+				//Extrapolate out from the most recent two states
+				var timeDiff = justAbove.time - justBelow.time;
+				var percentPast = (expectedServerTime - justAbove.time) / timeDiff;
+				//For all values, find the difference, mutiply by percent past, add to above state
+
+				for(var jBIndex in justBelow.players){
+					var jBThisPlayer = justBelow.players[jBIndex];
+					if(jBThisPlayer.playerId != this.me.playerId){
+						var player = this.worldState.getPlayer(jBThisPlayer.playerId);
+						var jAThisPlayer = false;
+						for(var jAIndex in justAbove.players){
+							if(jBThisPlayer.playerId == justAbove.players[jAIndex].playerId){
+								jAThisPlayer = justAbove.players[jAIndex];
+								break;
+							}
+						}
+						player.setStateByExtrapolation(jBThisPlayer, jAThisPlayer, percentIn);
+					}
+				}
+
+
+			}else if(this.stateBuffer.length == 1){
+				//Just use this state
+			}else{
+				//There are no states - should never happen
+				alert('No states - should never happen - die');
+			}
+		}
+	}
+
+
+
+	//Render
 	this.renderer.render();
 }
 
 ClientWorld.prototype.receivedServerState = function(payload){
+
+	this.stateBuffer.push(payload);
 
 	if(this.me.playerId == 0){
 		this.me.playerId = payload.you;
@@ -95,18 +214,18 @@ ClientWorld.prototype.receivedServerState = function(payload){
 		}else{
 			var player = this.worldState.getPlayer(thisPlayer.playerId);
 			if(typeof player == 'undefined'){
-				console.log('create player');
+				console.log('create player '+thisPlayer.playerId);
 				player = new Player.Player(thisPlayer.playerId, this.physicsEngine, this.renderer);
 				player.setState(thisPlayer);
 				this.worldState.addPlayer(player);
-			}else{
+			}/*else{
 				player.setState(thisPlayer);
-			}
+			}*/
 		}
 	}
 
 	this.worldState.removePlayersNotIn(includedPlayers);
-
+	
 }
 
 exports.ClientWorld = ClientWorld;
