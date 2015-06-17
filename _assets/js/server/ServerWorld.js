@@ -10,7 +10,7 @@ var ServerWorld = function(){
 	this.worldState = new WorldState.WorldState();
 	this.physicsTickCounter = 0;
 
-	this.physicsEngine = Matter.Engine.create(false, {enableSleeping: true}, false);
+	this.physicsEngine = Matter.Engine.create({enableSleeping: false, createRenderer: false});
 
 	this.physicsEngine.world.gravity.x = 0;
 	this.physicsEngine.world.gravity.y = 0;
@@ -24,7 +24,7 @@ var ServerWorld = function(){
 }
 
 ServerWorld.prototype.addPlayer = function(socket){
-	var player = new Player.Player(socket.playerId, this.physicsEngine, null, socket);
+	var player = new Player.Player(socket.playerId, this.physicsEngine, this.worldState, null, socket);
 	this.worldState.addPlayer(player);
 }
 

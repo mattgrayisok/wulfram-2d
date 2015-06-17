@@ -16,12 +16,17 @@ Renderer.prototype.initialise = function(){
 	this.world = new PIXI.Container();
 	this.players = new PIXI.Container();
 
+	var background = PIXI.Sprite.fromImage("assets/images/background.jpg");
+	this.stage.addChild(background);
+	
 	//Add players to world
 	this.world.addChild(this.players);
 	//Add world to display
 	this.stage.addChild(this.world);
 	//Add hud to display
 	this.stage.addChild(this.hud);
+
+
 }
 
 Renderer.prototype.render = function(){

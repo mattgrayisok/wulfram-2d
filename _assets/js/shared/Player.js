@@ -1,7 +1,7 @@
 
 var Matter = require('matter-js');
 
-var Player = function(playerId, physicsEngine, renderer, socket){
+var Player = function(playerId, physicsEngine, worldState, renderer, socket){
 
 	this.playerId = playerId;
 	this.inputs = [];
@@ -12,6 +12,8 @@ var Player = function(playerId, physicsEngine, renderer, socket){
 	this.renderer = renderer;
 	this.physicsEngine = physicsEngine;
 	this.socket = socket;
+	this.worldState = worldState;
+	this.health = 100;
 
 	//Create a physics body for the player
 	this.body = Matter.Body.create( 
@@ -22,6 +24,7 @@ var Player = function(playerId, physicsEngine, renderer, socket){
 			vertices: [{ x: -25, y: -25 }, { x: 0, y: 25 }, { x: 25, y: -25 }],
 			position: {x: 300, y: 300}
 		});
+	this.body.parentPlayer = this;
 	Matter.World.add(this.physicsEngine.world, this.body);
 
 	if(this.renderer !== null){
@@ -104,11 +107,32 @@ Player.prototype.applyInputState = function(state, tick){
 
 	if(state.keys.left == 1){
 		this.body.torque = -global.config.playerLateralTorque;
-	}
-
-	if(state.keys.right == 1){
+	}else if(state.keys.right == 1){
 		this.body.torque = global.config.playerLateralTorque;
 	}
+
+	if(state.keys.sp == 1){
+		//Fire the guns
+		//Raycast out and Check for collisions along the path
+		//TODO: This needs to compare against a previous state. How the dickens to achieve that?
+		var xDelta = Math.sin(this.body.angle) * global.config.playerMainGunRange * -1; //Not sure why this needs a -1
+		var yDelta = Math.cos(this.body.angle) * global.config.playerMainGunRange;
+		var rayVector = {x:xDelta, y:yDelta};
+		var collisions = Matter.Query.ray (this.worldState.getAllPlayerBodies(this.playerId), 
+							this.body.position, 
+							Matter.Vector.add(this.body.position, rayVector));
+
+		if(collisions.length > 0){
+			
+		} 
+		
+		//Reduce health on other player
+		//Reduce energy on this player
+		//Apply a small force to the other player where they were shot
+		//Apply a small force to this player pushing them backwards
+		//Update sprite to reflect firing
+	}
+
 
 	if(this.renderer !== null){
 		this.updateSpriteFromBody();
@@ -165,7 +189,6 @@ Player.prototype.updateSpriteFromBody = function(){
 }
 
 Player.prototype.setState = function(state){
-	//console.log(Matter.Body);
 	
 	Matter.Body.set(this.body, 'position', state.position);
 	Matter.Body.set(this.body, 'angle', state.angle);
@@ -176,7 +199,6 @@ Player.prototype.setState = function(state){
 }
 
 Player.prototype.setStateByInterpolation = function(state1, state2, percent){
-	//console.log(Matter.Body);
 	
 	Matter.Body.set(this.body, 'position', global.helpers.interpolateVector(state1.position, state2.position, percent));
 	Matter.Body.set(this.body, 'angle', global.helpers.interpolate(state1.angle, state2.angle, percent));
@@ -187,7 +209,6 @@ Player.prototype.setStateByInterpolation = function(state1, state2, percent){
 }
 
 Player.prototype.setStateByExtrapolation = function(state1, state2, percent){
-	//console.log(Matter.Body);
 	
 	Matter.Body.set(this.body, 'position', global.helpers.extrapolateVector(state1.position, state2.position, percent));
 	Matter.Body.set(this.body, 'angle', global.helpers.extrapolate(state1.angle, state2.angle, percent));

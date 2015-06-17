@@ -15,7 +15,7 @@ var ClientWorld = function(renderer, socket){
 	this.stateBuffer = [];
 	this.stateMilliOffset = false;
 
-	this.physicsEngine = Matter.Engine.create(document.getElementById('test'), {
+	this.physicsEngine = Matter.Engine.create({
 		enableSleeping: false,
 	  	render: {
 			controller: Matter.RenderPixi,
@@ -24,7 +24,7 @@ var ClientWorld = function(renderer, socket){
 				showAngleIndicator: true
 			}
 		}
-	}, false);
+	});
 
 	this.physicsEngine.world.gravity.x = 0;
 	this.physicsEngine.world.gravity.y = 0;
@@ -34,7 +34,7 @@ var ClientWorld = function(renderer, socket){
 
 	this.inputHistory = [];
 
-	this.me = new Player.Player(0, this.physicsEngine, renderer);
+	this.me = new Player.Player(0, this.physicsEngine, this.worldState, renderer);
 
 	this.renderClock.start();
 	this.physicsClock.start();
@@ -156,7 +156,7 @@ ClientWorld.prototype.renderTick = function(){
 				justAbove = this.stateBuffer[this.stateBuffer.length-1];
 				var timeDiff = justAbove.time - justBelow.time;
 				var percentPast = (expectedServerTime - justAbove.time) / timeDiff;
-				
+
 				this.worldState.setStateByExtrapolation(justBelow, 
 														justAbove, 
 														percentPast, this.me.playerId);
@@ -198,7 +198,7 @@ ClientWorld.prototype.receivedServerState = function(payload){
 			var player = this.worldState.getPlayer(thisPlayer.playerId);
 			if(typeof player == 'undefined'){
 				console.log('create player '+thisPlayer.playerId);
-				player = new Player.Player(thisPlayer.playerId, this.physicsEngine, this.renderer);
+				player = new Player.Player(thisPlayer.playerId, this.physicsEngine, this.worldState, this.renderer);
 				player.setState(thisPlayer);
 				this.worldState.addPlayer(player);
 			}/*else{

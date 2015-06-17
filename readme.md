@@ -14,7 +14,7 @@ Implemented:
 * Client side state extrapolation (for buffer under-runs)
 
 Todo:
-* Keep in mind authoritative client approach in case lag makes reconciliation break (https://answers.unrealengine.com/questions/58920/client-prediction-reconciliation-theory-for-physic.html)
+* Keep in mind authoritative client approach in case lag makes reconciliation break (https://answers.unrealengine.com/questions/58920/client-prediction-reconciliation-theory-for-physic.html). Seems ok for now.
 * Shooting stuff
 * Adjust renderer to follow player with camera
 * Bodies representing map boundaries

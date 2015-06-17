@@ -115,4 +115,14 @@ WorldState.prototype.findMatchingStatesFromTwoStateCollections = function(state1
 
 }
 
+WorldState.prototype.getAllPlayerBodies = function(excluding){
+	var toReturn = [];
+	for(var playerId in this._state.players){
+		if (playerId != excluding){
+			toReturn.push(this._state.players[playerId].body);
+		}
+	}
+	return toReturn;
+}
+
 exports.WorldState = WorldState;

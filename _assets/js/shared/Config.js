@@ -17,6 +17,8 @@ var Config = function(){
 	this.playerAtmosphericFriction = 0.02;
 	this.playerRestitution = .1; //Energy conserved after collision
 	this.playerDensity = 1;
+
+	this.playerMainGunRange = 400;
 }
 
 exports.Config = Config;
