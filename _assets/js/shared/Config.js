@@ -10,6 +10,8 @@ var Config = function(){
 	this.minimumPositionAdjustmentOffset = 1;
 	this.minimumAngleAdjustmentOffset = 0.1;
 
+	this.shootingPastOffset = 10; // The number of physics ticks to go into the past when simulating shooting
+
 	this.playerForwardThrust = 0.6;
 	this.playerReverseThrust = 0.3;
 	this.playerLateralThrust = 0.3;	//Strafe

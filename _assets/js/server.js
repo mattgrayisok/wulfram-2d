@@ -10,6 +10,9 @@ var Helpers 		= require('./shared/Helpers');
 
 global.config = new Config.Config();
 global.helpers = new Helpers.Helpers();
+global.isServer = true;
+global.isClient = false;
+
 
 function init() {
 	app.get('/', function(req, res){

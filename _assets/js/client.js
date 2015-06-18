@@ -4,6 +4,8 @@ var ClientCore 		= require('./client/ClientCore');
 
 global.config = new Config.Config();
 global.helpers = new Helpers.Helpers();
+global.isServer = false;
+global.isClient = true;
 
 console.log(global.helpers);
 

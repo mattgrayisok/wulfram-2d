@@ -90,7 +90,8 @@ Player.prototype.applyInputState = function(state, tick){
 	//console.log('Adding prev state for tick '+prevState.physicsTick+' Pos '+prevState.position.x);
 
 	if(state.keys.w == 1){
-		Matter.Body.applyForce(this.body, this.body.position, 
+		Matter.Body.applyForce(this.body, 
+			Matter.Vector.add(this.body.position,Matter.Vector.rotate( {x:1,y:0}, this.body.angle)), 
 			Matter.Vector.rotate({ x: 0, y: global.config.playerForwardThrust }, this.body.angle));
 	}else if(state.keys.s == 1){
 		Matter.Body.applyForce(this.body, this.body.position, 
@@ -114,17 +115,23 @@ Player.prototype.applyInputState = function(state, tick){
 	if(state.keys.sp == 1){
 		//Fire the guns
 		//Raycast out and Check for collisions along the path
-		//TODO: This needs to compare against a previous state. How the dickens to achieve that?
-		var xDelta = Math.sin(this.body.angle) * global.config.playerMainGunRange * -1; //Not sure why this needs a -1
-		var yDelta = Math.cos(this.body.angle) * global.config.playerMainGunRange;
-		var rayVector = {x:xDelta, y:yDelta};
-		var collisions = Matter.Query.ray (this.worldState.getAllPlayerBodies(this.playerId), 
-							this.body.position, 
-							Matter.Vector.add(this.body.position, rayVector));
+		
+		if(global.isServer){
 
-		if(collisions.length > 0){
-			
-		} 
+			var bodies = this.worldState.getPlayerBodiesForTick(tick - global.config.inputToSimulationBuffer - global.config.shootingPastOffset, this.playerId);
+
+			var xDelta = Math.sin(this.body.angle) * global.config.playerMainGunRange * -1; //Not sure why this needs a -1
+			var yDelta = Math.cos(this.body.angle) * global.config.playerMainGunRange;
+			var rayVector = {x:xDelta, y:yDelta};
+			var collisions = Matter.Query.ray (bodies, 
+								this.body.position, 
+								Matter.Vector.add(this.body.position, rayVector));
+
+			if(collisions.length > 0){
+						
+			}
+
+		}
 		
 		//Reduce health on other player
 		//Reduce energy on this player

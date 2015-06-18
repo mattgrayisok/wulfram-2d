@@ -1,4 +1,5 @@
 var _ = require('lodash');
+var Matter = require('matter-js');
 
 var WorldState = function(){
 
@@ -6,6 +7,8 @@ var WorldState = function(){
 		players : {},
 		currentPlayer : null
 	};
+
+	this.previousPlayerStates = {};
 
 }
 
@@ -123,6 +126,56 @@ WorldState.prototype.getAllPlayerBodies = function(excluding){
 		}
 	}
 	return toReturn;
+}
+
+WorldState.prototype.recordPlayerStatesForThisTick = function(tick){
+
+	this.previousPlayerStates[""+tick] = {players : {}};
+	for(var playerId in this._state.players){
+		var thisPlayer = this._state.players[playerId];
+		this.previousPlayerStates[""+tick].players[playerId] = {
+			position: thisPlayer.body.position,
+			angle: thisPlayer.body.angle
+		}
+	}
+
+	//Clean up old ones every ~200th tick
+	if(Math.random() > 0.995){
+		for(var tickIndex in this.previousPlayerStates){
+			if(parseInt(tickIndex) < tick - 1000){
+				delete this.previousPlayerStates[tickIndex];
+			}
+		}
+	}
+
+}
+
+WorldState.prototype.getPlayerBodiesForTick = function(tick, exclude){
+	var state = this.previousPlayerStates[""+tick];
+	var self = this;
+
+	if(typeof state == 'undefined'){
+		return [];
+	}
+	
+	if(typeof state.bodies == 'undefined'){
+		state.bodies = [];
+		_.each(state.players, function(thisPlayer, playerId){
+
+			if(playerId != exclude){
+				var body = Matter.Body.create({ 	
+					angle: thisPlayer.angle,
+					position: thisPlayer.position,
+					vertices: [{ x: -25, y: -25 }, { x: 0, y: 25 }, { x: 25, y: -25 }]
+				});
+				body.parentPlayer = self.getPlayer(playerId);
+				state.bodies.push(body);
+			}
+		});
+	}
+
+	return state.bodies;
+
 }
 
 exports.WorldState = WorldState;

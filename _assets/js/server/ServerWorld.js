@@ -10,7 +10,7 @@ var ServerWorld = function(){
 	this.worldState = new WorldState.WorldState();
 	this.physicsTickCounter = 0;
 
-	this.physicsEngine = Matter.Engine.create({enableSleeping: false, createRenderer: false});
+	this.physicsEngine = Matter.Engine.create({enableSleeping: false, useRenderer: false});
 
 	this.physicsEngine.world.gravity.x = 0;
 	this.physicsEngine.world.gravity.y = 0;
@@ -55,6 +55,8 @@ ServerWorld.prototype.physicsTick = function(){
 	_.forEach(this.worldState._state.players, function(player){
 		player.server_applyStateForPhysicsTick(self.physicsTickCounter);
 	});
+
+	this.worldState.recordPlayerStatesForThisTick(self.physicsTickCounter);
 
 	Matter.Engine.update(this.physicsEngine, global.config.physicsClock_ms);
 
