@@ -131,22 +131,30 @@ Player.prototype.applyInputState = function(state, tick){
 								this.body.position, 
 								Matter.Vector.add(this.body.position, rayVector));
 
+			var hit = false;
+			var collisionToUse = false;
+			var collisionDistance = 9999;
 			_.each(collisions, function(collision, index){
+				
+				var differenceVector = Matter.Vector.sub(collision.body.position, self.body.position);
+				var distance = Matter.Vector.magnitudeSquared(differenceVector);
+				if(collisionToUse == false || distance < collisionDistance){
+					collisionToUse = collision;
+					collisionDistance = distance;
+				}
 
-				var body = collision.body;
+			});
+
+			if(collisionToUse!==false){
+				
+				var body = collisionToUse.body;
 				var otherPlayer = body.parentPlayer;
 				Matter.Body.applyForce(otherPlayer.body, self.body.position, 
 					Matter.Vector.rotate({ x: 0, y: global.config.playerMainGunHitForce }, self.body.angle));
 		
-
-				//Find the closest onekk
-
 				//Reduce health on other player
-				//Apply a small force to the other player where they were shot
-				/*Matter.Body.applyForce(this.body, this.body.position, 
-					Matter.Vector.rotate({ x: 0, y: -global.config.playerMainGunBackwardForce }, this.body.angle));*/
-			
-			});
+				otherPlayer.health -= global.config.playerMainGunDamage;
+			};
 
 		}
 		

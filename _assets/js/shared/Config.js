@@ -23,6 +23,7 @@ var Config = function(){
 	this.playerMainGunRange = 400;
 	this.playerMainGunBackwardForce = 0.05;
 	this.playerMainGunHitForce = 0.05;
+	this.playerMainGunDamage = 1;
 }
 
 exports.Config = Config;
