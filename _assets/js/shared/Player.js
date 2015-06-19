@@ -153,7 +153,7 @@ Player.prototype.applyInputState = function(state, tick){
 					Matter.Vector.rotate({ x: 0, y: global.config.playerMainGunHitForce }, self.body.angle));
 		
 				//Reduce health on other player
-				otherPlayer.health -= global.config.playerMainGunDamage;
+				otherPlayer.server_subtractHealth(global.config.playerMainGunDamage);
 			};
 
 		}
@@ -162,7 +162,6 @@ Player.prototype.applyInputState = function(state, tick){
 		//Apply a small force to this player pushing them backwards
 		Matter.Body.applyForce(this.body, this.body.position, 
 			Matter.Vector.rotate({ x: 0, y: -global.config.playerMainGunBackwardForce }, this.body.angle));
-		
 
 		//Update sprite to reflect firing
 	}
@@ -172,6 +171,13 @@ Player.prototype.applyInputState = function(state, tick){
 		this.updateSpriteFromBody();
 	}
 
+}
+
+Player.prototype.server_subtractHealth = function(amount){
+	this.health -= amount;
+	if(this.health <= 0){
+		//I'm dead
+	}
 }
 
 Player.prototype.client_updateFromServer = function(state, playerState, currentTick){
