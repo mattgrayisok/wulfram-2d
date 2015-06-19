@@ -21,6 +21,8 @@ var Config = function(){
 	this.playerDensity = 1;
 
 	this.playerMainGunRange = 400;
+	this.playerMainGunBackwardForce = 0.05;
+	this.playerMainGunHitForce = 0.05;
 }
 
 exports.Config = Config;

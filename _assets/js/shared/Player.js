@@ -1,5 +1,6 @@
 
 var Matter = require('matter-js');
+var _ = require('lodash');
 
 var Player = function(playerId, physicsEngine, worldState, renderer, socket){
 
@@ -78,6 +79,8 @@ Player.prototype.server_applyStateForPhysicsTick = function(tick){
 
 Player.prototype.applyInputState = function(state, tick){
 
+	var self = this;
+
 	if(state == false){
 		return;
 	}
@@ -90,8 +93,7 @@ Player.prototype.applyInputState = function(state, tick){
 	//console.log('Adding prev state for tick '+prevState.physicsTick+' Pos '+prevState.position.x);
 
 	if(state.keys.w == 1){
-		Matter.Body.applyForce(this.body, 
-			Matter.Vector.add(this.body.position,Matter.Vector.rotate( {x:1,y:0}, this.body.angle)), 
+		Matter.Body.applyForce(this.body, this.body.position, 
 			Matter.Vector.rotate({ x: 0, y: global.config.playerForwardThrust }, this.body.angle));
 	}else if(state.keys.s == 1){
 		Matter.Body.applyForce(this.body, this.body.position, 
@@ -118,7 +120,9 @@ Player.prototype.applyInputState = function(state, tick){
 		
 		if(global.isServer){
 
-			var bodies = this.worldState.getPlayerBodiesForTick(tick - global.config.inputToSimulationBuffer - global.config.shootingPastOffset, this.playerId);
+			var bodies = this.worldState.getPlayerBodiesForTick(
+				tick - global.config.inputToSimulationBuffer - global.config.shootingPastOffset, 
+				this.playerId);
 
 			var xDelta = Math.sin(this.body.angle) * global.config.playerMainGunRange * -1; //Not sure why this needs a -1
 			var yDelta = Math.cos(this.body.angle) * global.config.playerMainGunRange;
@@ -127,16 +131,31 @@ Player.prototype.applyInputState = function(state, tick){
 								this.body.position, 
 								Matter.Vector.add(this.body.position, rayVector));
 
-			if(collisions.length > 0){
-						
-			}
+			_.each(collisions, function(collision, index){
+
+				var body = collision.body;
+				var otherPlayer = body.parentPlayer;
+				Matter.Body.applyForce(otherPlayer.body, self.body.position, 
+					Matter.Vector.rotate({ x: 0, y: global.config.playerMainGunHitForce }, self.body.angle));
+		
+
+				//Find the closest onekk
+
+				//Reduce health on other player
+				//Apply a small force to the other player where they were shot
+				/*Matter.Body.applyForce(this.body, this.body.position, 
+					Matter.Vector.rotate({ x: 0, y: -global.config.playerMainGunBackwardForce }, this.body.angle));*/
+			
+			});
 
 		}
 		
-		//Reduce health on other player
 		//Reduce energy on this player
-		//Apply a small force to the other player where they were shot
 		//Apply a small force to this player pushing them backwards
+		Matter.Body.applyForce(this.body, this.body.position, 
+			Matter.Vector.rotate({ x: 0, y: -global.config.playerMainGunBackwardForce }, this.body.angle));
+		
+
 		//Update sprite to reflect firing
 	}
 
