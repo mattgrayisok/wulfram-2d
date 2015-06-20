@@ -6,7 +6,7 @@ var Config = function(){
 	
 	this.inputToSimulationBuffer = 5; //A server side buffer for input events from the clients
 	this.clientSideRenderBuffer = 2;
-	this.serverAdjustmentReducer = 0.1;	//Used to slowly bring the player into the correct position rather than suddenly shift it
+	this.serverAdjustmentReducer = 0.05;	//Used to slowly bring the player into the correct position rather than suddenly shift it
 	this.minimumPositionAdjustmentOffset = 1;
 	this.minimumAngleAdjustmentOffset = 0.1;
 

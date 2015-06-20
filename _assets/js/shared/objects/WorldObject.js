@@ -12,6 +12,10 @@ var WorldObject = function(position, angle, vertices, isStatic, renderLayer, par
 	this.angle = angle || 0;
 	this.parentWorld = parentWorld;
 
+	this.incorrectPositionX = 0;
+	this.incorrectPositionY = 0;
+	this.incorrectAngle = 0;
+
 	this.previousStates = [];
 
 	this.body = Matter.Body.create({ 	
@@ -117,11 +121,16 @@ WorldObject.prototype.updateFromServer = function(state, playerState, currentTic
 			if(Math.abs(xDelta) > global.config.minimumPositionAdjustmentOffset || Math.abs(yDelta) > global.config.minimumPositionAdjustmentOffset || Math.abs(angleDelta) > global.config.minimumAngleAdjustmentOffset){
 				//console.log('adjusting by '+xDelta);
 				//Need to adjust current position
-				var newPos = Matter.Vector.sub(this.body.position, {x:xDelta*global.config.serverAdjustmentReducer, y:yDelta*global.config.serverAdjustmentReducer});
-				var newAngle = this.body.angle + angleDelta*global.config.serverAdjustmentReducer;
+				//var newPos = Matter.Vector.sub(this.body.position, {x:xDelta*global.config.serverAdjustmentReducer, y:yDelta*global.config.serverAdjustmentReducer});
+				//var newAngle = this.body.angle + angleDelta*global.config.serverAdjustmentReducer;
 
-				Matter.Body.set(this.body, 'position', newPos);
-				Matter.Body.set(this.body, 'angle', playerState.angle);
+				//Matter.Body.set(this.body, 'position', newPos);
+				//Matter.Body.set(this.body, 'angle', playerState.angle);
+
+				this.incorrectPositionX = xDelta;
+				this.incorrectPositionY = yDelta;
+				this.incorrectAngle = angleDelta;
+
 
 			}
 
@@ -144,12 +153,37 @@ WorldObject.prototype.toMessage = function(){
 	};
 }
 
+WorldObject.prototype.reconcileTowardsServer = function(){
+
+	if(Math.abs(this.incorrectPositionX) > global.config.minimumPositionAdjustmentOffset 
+		|| Math.abs(this.incorrectPositionY) > global.config.minimumPositionAdjustmentOffset 
+		|| Math.abs(this.incorrectAngle) > global.config.minimumAngleAdjustmentOffset){
+
+		var changeX = this.incorrectPositionX*global.config.serverAdjustmentReducer;
+		var changeY = this.incorrectPositionY*global.config.serverAdjustmentReducer;
+		var changeAngle = this.incorrectAngle*global.config.serverAdjustmentReducer;
+
+		var newPos = Matter.Vector.sub(this.body.position, {x: changeX, y:changeY});
+		var newAngle = this.body.angle - changeAngle;
+
+		Matter.Body.set(this.body, 'position', newPos);
+		Matter.Body.set(this.body, 'angle', newAngle);
+
+		this.incorrectPositionX -= changeX;
+		this.incorrectPositionY -= changeY;
+		this.incorrectAngle -= changeAngle;
+	}
+
+}
+
 WorldObject.prototype.applyActionsForPhysicsTick = function(tick){
+	
+	
 	return;
 }
 
 WorldObject.prototype.remove = function(){
-	//FIXME
+	
 	Matter.World.remove(this.parentWorld.physicsEngine.world, this.body);
 	if(global.isClient){
 	    global.renderer[this.renderLayer].removeChild(this.sprite);

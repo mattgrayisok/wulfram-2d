@@ -49,6 +49,7 @@ Player.prototype.addInputState = function(inputState, currentTick){
 }
 
 Player.prototype.applyActionsForPhysicsTick = function(tick){
+	MoveableObject.prototype.applyActionsForPhysicsTick.call(this);
 	this.applyInputStateForPhysicsTick(tick);
 }
 

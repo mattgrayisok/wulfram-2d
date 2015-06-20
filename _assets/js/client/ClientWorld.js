@@ -70,6 +70,7 @@ ClientWorld.prototype.physicsTick = function(){
     Matter.Engine.update(this.physicsEngine, global.config.physicsClock_ms);
 
     //Matter.Engine.render(this.physicsEngine);
+    this.me.reconcileTowardsServer();
     
     //Send keyboard state to server
     var message = inputState.toMessage();
