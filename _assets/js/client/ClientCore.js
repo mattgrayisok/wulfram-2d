@@ -13,14 +13,14 @@ var ClientCore = function(){
 
 ClientCore.prototype.init = function(){
 
-	var renderer = new Renderer.Renderer();
+	global.renderer = new Renderer();
 	renderer.initialise();
 
 	var socket = io();
 	
 	socket.on('connected', function(msg){
 	    //Create our game client instance.
-		world = new ClientWorld.ClientWorld(renderer, socket);
+		world = new ClientWorld(socket);
 
 		socket.on('message', function(message){
 			switch (message.type){
@@ -36,4 +36,4 @@ ClientCore.prototype.init = function(){
 
 }
 
-exports.ClientCore = ClientCore;
+module.exports = exports = ClientCore;

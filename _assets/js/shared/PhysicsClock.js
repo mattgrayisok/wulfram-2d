@@ -43,4 +43,4 @@ PhysicsClock.prototype.stop = function(){
 	this.running = false;
 }
 
-exports.PhysicsClock = PhysicsClock;
+module.exports = exports = PhysicsClock;

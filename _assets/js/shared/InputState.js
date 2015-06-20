@@ -13,4 +13,4 @@ InputState.prototype.toMessage = function(){
 	}
 }
 
-exports.InputState = InputState;
+module.exports = exports = InputState;

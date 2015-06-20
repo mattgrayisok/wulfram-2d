@@ -35,4 +35,4 @@ Renderer.prototype.render = function(){
 
 }
 
-exports.Renderer = Renderer;
+module.exports = exports = Renderer;

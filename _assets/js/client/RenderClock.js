@@ -27,4 +27,4 @@ RenderClock.prototype.stop = function(){
 	window.cancelAnimationFrame( this.updateid );
 }
 
-exports.RenderClock = RenderClock;
+module.exports = exports = RenderClock;

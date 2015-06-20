@@ -4,43 +4,71 @@ var Matter = require('matter-js');
 var WorldState = function(){
 
 	this._state = {
+		objects : {},
 		players : {},
 		currentPlayer : null
 	};
 
-	this.previousPlayerStates = {};
+	this.previousObjectStates = {};
 
 }
 
-WorldState.prototype.getPlayer = function(playerId){
+WorldState.prototype.getPlayer = function(objectId){
+	return this._state.players[objectId];
+}
 
-	return this._state.players[playerId];
-
+WorldState.prototype.getObject = function(objectId){
+	return this._state.objects[objectId];
 }
 
 WorldState.prototype.addPlayer = function(player){
 	
-	var playerId = player.playerId;
+	var self = this;
+
+	this.addObject(player);
+	var playerId = player.objectId;
 	this._state.players[playerId] = player;
+
+	if(player.socket){
+		player.socket.on('disconnect', function(){
+			self.removeObject(playerId);
+		});
+	}
 
 }
 
-WorldState.prototype.removePlayer = function(player){
+WorldState.prototype.addObject = function(object){
+	var objectId = object.objectId;
+	this._state.objects[objectId] = object;
+}
+
+WorldState.prototype.getAllObjects = function(){
+	return this._state.objects;
+};
+
+WorldState.prototype.getAllPlayers = function(){
+	return this._state.players;
+};
+
+WorldState.prototype.removeObject = function(object){
 	
-	var playerId = '';
+	var objectId = '';
 
-
-	if(typeof player == 'string'){
-		playerId = player;
+	if(typeof object == 'string'){
+		objectId = object;
 	}else{
-		playerId = player.playerId;
+		objectId = object.objectId;
 	}
 
-	console.log('Removing '+playerId);
+	console.log('Removing '+objectId);
 
-	if(typeof this._state.players[playerId] == 'object'){
-		this._state.players[playerId].remove();
-		delete this._state.players[playerId];
+	if(typeof this._state.objects[objectId] == 'object'){
+		this._state.objects[objectId].remove();
+		delete this._state.objects[objectId];
+	}
+
+	if(typeof this._state.players[objectId] == 'object'){
+		delete this._state.players[objectId];
 	}
 
 }
@@ -56,19 +84,18 @@ WorldState.prototype.toMessage = function(){
 	return {
 		players: players
 	};
-}
+} 
 
 WorldState.prototype.removePlayersNotIn = function(list){
 	for(var index in this._state.players){
 		var thisPlayer = this._state.players[index];
-		if(!_.includes(list, thisPlayer.playerId)){
-			this.removePlayer(thisPlayer);
+		if(!_.includes(list, thisPlayer.objectId)){
+			this.removeObject(thisPlayer);
 		}
 	}
 }
 
 WorldState.prototype.setState = function(state, exclude){
-	console.log('setState');
 	var self = this;
 
 	//Players
@@ -84,9 +111,9 @@ WorldState.prototype.setStateByInterpolation = function(state1, state2, percent,
 	var self = this;
 
 	//Players
-	self.findMatchingStatesFromTwoStateCollections(state1.players, state2.players, "playerId", function(state1, state2, propertyValue){
+	self.findMatchingStatesFromTwoStateCollections(state1.players, state2.players, "objectId", function(state1, state2, propertyValue){
 		var player = self.getPlayer(propertyValue);
-		if(typeof player == 'undefined' || player.playerId == exclude) return;
+		if(typeof player == 'undefined' || player.objectId == exclude) return;
 		player.setStateByInterpolation(state1, state2, percent);
 	});
 
@@ -96,7 +123,7 @@ WorldState.prototype.setStateByExtrapolation = function(state1, state2, percent,
 	var self = this;
 
 	//Players
-	self.findMatchingStatesFromTwoStateCollections(state1.players, state2.players, "playerId", function(state1, state2, propertyValue){
+	self.findMatchingStatesFromTwoStateCollections(state1.players, state2.players, "objectId", function(state1, state2, propertyValue){
 		var player = self.getPlayer(propertyValue);
 		if(typeof player == 'undefined' || player.playerId == exclude) return;
 		player.setStateByExtrapolation(state1, state2, percent);
@@ -128,22 +155,25 @@ WorldState.prototype.getAllPlayerBodies = function(excluding){
 	return toReturn;
 }
 
-WorldState.prototype.recordPlayerStatesForThisTick = function(tick){
+WorldState.prototype.recordObjectStatesForPhysicsTick = function(tick){
 
-	this.previousPlayerStates[""+tick] = {players : {}};
-	for(var playerId in this._state.players){
-		var thisPlayer = this._state.players[playerId];
-		this.previousPlayerStates[""+tick].players[playerId] = {
-			position: thisPlayer.body.position,
-			angle: thisPlayer.body.angle
+	//We just use this to compare to shooting against so we only need position and angle
+
+	this.previousObjectStates[""+tick] = {objects : {}};
+	for(var objectId in this._state.objects){
+		var thisObject = this._state.objects[objectId];
+		this.previousObjectStates[""+tick].objects[objectId] = {
+			position: thisObject.body.position,
+			angle: thisObject.body.angle,
+			vertices: thisObject.vertices
 		}
 	}
 
 	//Clean up old ones every ~200th tick
 	if(Math.random() > 0.995){
-		for(var tickIndex in this.previousPlayerStates){
-			if(parseInt(tickIndex) < tick - 1000){
-				delete this.previousPlayerStates[tickIndex];
+		for(var tickIndex in this.previousObjectStates){
+			if(parseInt(tickIndex) < tick - 200){
+				delete this.previousObjectStates[tickIndex];
 			}
 		}
 	}
@@ -151,7 +181,21 @@ WorldState.prototype.recordPlayerStatesForThisTick = function(tick){
 }
 
 WorldState.prototype.getPlayerBodiesForTick = function(tick, exclude){
-	var state = this.previousPlayerStates[""+tick];
+	
+	//FIXME: The array returned from this will be pass by reference, we need to make a copy.
+	var allBodies = this.getAllShootableBodiesForTick(tick, exclude);
+	/*for(var i = allBodies.length - 1; i >= 0; i--){
+		if(allBodies[i].objectType !== 'player'){
+			allBodies.splice(i, 1);
+		}
+	}*/
+
+	return allBodies;
+
+}
+
+WorldState.prototype.getAllShootableBodiesForTick = function(tick, exclude){
+	var state = this.previousObjectStates[""+tick];
 	var self = this;
 
 	if(typeof state == 'undefined'){
@@ -160,22 +204,21 @@ WorldState.prototype.getPlayerBodiesForTick = function(tick, exclude){
 	
 	if(typeof state.bodies == 'undefined'){
 		state.bodies = [];
-		_.each(state.players, function(thisPlayer, playerId){
+		_.each(state.objects, function(thisObject, objectId){
 
-			if(playerId != exclude){
+			if(objectId != exclude){
 				var body = Matter.Body.create({ 	
-					angle: thisPlayer.angle,
-					position: thisPlayer.position,
-					vertices: [{ x: -25, y: -25 }, { x: 0, y: 25 }, { x: 25, y: -25 }]
+					angle: thisObject.angle,
+					position: thisObject.position,
+					vertices: thisObject.vertices
 				});
-				body.parentPlayer = self.getPlayer(playerId);
+				body.parentObject = self.getObject(objectId);
 				state.bodies.push(body);
 			}
 		});
 	}
 
 	return state.bodies;
-
 }
 
-exports.WorldState = WorldState;
+module.exports = exports = WorldState;

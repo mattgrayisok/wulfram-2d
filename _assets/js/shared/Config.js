@@ -12,6 +12,9 @@ var Config = function(){
 
 	this.shootingPastOffset = 10; // The number of physics ticks to go into the past when simulating shooting
 
+	this.playerStartHealth = 100;
+	this.playerVertices = [{ x: -25, y: -25 }, { x: 0, y: 25 }, { x: 25, y: -25 }];
+
 	this.playerForwardThrust = 0.6;
 	this.playerReverseThrust = 0.3;
 	this.playerLateralThrust = 0.3;	//Strafe
@@ -26,4 +29,4 @@ var Config = function(){
 	this.playerMainGunDamage = 1;
 }
 
-exports.Config = Config;
+module.exports = exports = Config;

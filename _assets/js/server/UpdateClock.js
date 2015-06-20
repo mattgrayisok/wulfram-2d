@@ -43,4 +43,4 @@ UpdateClock.prototype.stop = function(){
 	this.running = false;
 }
 
-exports.UpdateClock = UpdateClock;
+module.exports = exports = UpdateClock;

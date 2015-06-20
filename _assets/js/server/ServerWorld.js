@@ -1,5 +1,5 @@
 var WorldState = require('../shared/WorldState');
-var Player = require('../shared/Player');
+var Player = require('../shared/objects/Player');
 var PhysicsClock = require('../shared/PhysicsClock');
 var UpdateClock = require('./UpdateClock');
 var _ = require('lodash');
@@ -7,7 +7,7 @@ var Matter = require('matter-js');
 
 var ServerWorld = function(){
 
-	this.worldState = new WorldState.WorldState();
+	this.worldState = new WorldState();
 	this.physicsTickCounter = 0;
 
 	this.physicsEngine = Matter.Engine.create({enableSleeping: false, useRenderer: false});
@@ -15,8 +15,8 @@ var ServerWorld = function(){
 	this.physicsEngine.world.gravity.x = 0;
 	this.physicsEngine.world.gravity.y = 0;
 
-	this.physicsClock = new PhysicsClock.PhysicsClock(this.physicsTick, this);
-	this.updateClock = new UpdateClock.UpdateClock(this.updateTick, this);
+	this.physicsClock = new PhysicsClock(this.physicsTick, this);
+	this.updateClock = new UpdateClock(this.updateTick, this);
 
 	this.updateClock.start();
 	this.physicsClock.start();
@@ -24,39 +24,26 @@ var ServerWorld = function(){
 }
 
 ServerWorld.prototype.addPlayer = function(socket){
-	var player = new Player.Player(socket.playerId, this.physicsEngine, this.worldState, null, socket);
+	var player = new Player(socket, {x:300, y:300}, Math.PI, this);
 	this.worldState.addPlayer(player);
+	player.addToWorld(this.physicsEngine.world);
 }
 
 ServerWorld.prototype.removePlayer = function(socket){
-	this.worldState.removePlayer(socket.playerId);
-}
-
-ServerWorld.prototype.handleInputMessage = function(playerId, payload){
-	//console.log(playerId);
-	var player = this.worldState.getPlayer(playerId);
-	if(player){
-		player.inputs.push(payload);
-		if(!player.receivedFirstInput){
-			player.receivedFirstInput = true;
-			//This input is for the next physics tick + buffer amount
-			var willBeApplied = this.physicsTickCounter + 1 + global.config.inputToSimulationBuffer;
-			player.physicsTickCounterOffset = willBeApplied - payload.physicsTickCounter;
-			//console.log("I'm on tick "+ this.physicsTickCounter +" Setting offset to "+player.physicsTickCounterOffset);
-		}
-	}
-
+	this.worldState.removePlayer(socket.objectId);
 }
 
 ServerWorld.prototype.physicsTick = function(){
 	this.physicsTickCounter++;
 	var self = this;
 
-	_.forEach(this.worldState._state.players, function(player){
-		player.server_applyStateForPhysicsTick(self.physicsTickCounter);
+	var objects = this.worldState.getAllObjects();
+
+	_.forEach(objects, function(object){
+		object.applyActionsForPhysicsTick(self.physicsTickCounter);
 	});
 
-	this.worldState.recordPlayerStatesForThisTick(self.physicsTickCounter);
+	this.worldState.recordObjectStatesForPhysicsTick(self.physicsTickCounter);
 
 	Matter.Engine.update(this.physicsEngine, global.config.physicsClock_ms);
 
@@ -76,16 +63,18 @@ ServerWorld.prototype.updateTick = function(){
     }
 
 	//Send it to all players
-    _.forEach(this.worldState._state.players, function(player){
+	var players = this.worldState.getAllPlayers();
+
+    _.forEach(players, function(player){
     	if(!player.receivedFirstInput){
     		return;
     	}
 		message.pl.physicsTick = self.physicsTickCounter - player.physicsTickCounterOffset;
-    	message.pl.you = player.playerId;
+    	message.pl.you = player.objectId;
     	player.socket.emit('message', message);
     });
 
 }
 
 
-exports.ServerWorld = ServerWorld;
+module.exports = exports = ServerWorld;

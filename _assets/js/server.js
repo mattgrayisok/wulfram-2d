@@ -8,8 +8,8 @@ var Config 		= require('./shared/Config');
 var Helpers 		= require('./shared/Helpers');
 
 
-global.config = new Config.Config();
-global.helpers = new Helpers.Helpers();
+global.config = new Config();
+global.helpers = new Helpers();
 global.isServer = true;
 global.isClient = false;
 
@@ -26,7 +26,7 @@ function init() {
         res.sendFile( file, { root: "."} );
     });
 
-    var server = new ServerCore.ServerCore(io);
+    var server = new ServerCore(io);
     server.init();
 
 	http.listen(3000, function(){

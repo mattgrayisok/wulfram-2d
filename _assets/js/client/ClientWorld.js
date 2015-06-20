@@ -1,17 +1,16 @@
 var PhysicsClock 	= require('../shared/PhysicsClock');
 var RenderClock 	= require('./RenderClock');
 var InputState 		= require('../shared/InputState');
-var Player 			= require('../shared/Player');
+var Player 			= require('../shared/objects/Player');
 var WorldState 		= require('../shared/WorldState');
 
 
-var ClientWorld = function(renderer, socket){
+var ClientWorld = function(socket){
 
-	this.renderer = renderer;
 	this.socket = socket;
 	this.physicsTickCounter = 0;
 
-	this.worldState = new WorldState.WorldState();
+	this.worldState = new WorldState();
 	this.stateBuffer = [];
 	this.stateMilliOffset = false;
 
@@ -29,20 +28,24 @@ var ClientWorld = function(renderer, socket){
 	this.physicsEngine.world.gravity.x = 0;
 	this.physicsEngine.world.gravity.y = 0;
 
-	this.physicsClock = new PhysicsClock.PhysicsClock(this.physicsTick, this);
-	this.renderClock = new RenderClock.RenderClock(this.renderTick, this);
+	this.physicsClock = new PhysicsClock(this.physicsTick, this);
+	this.renderClock = new RenderClock(this.renderTick, this);
 
 	this.inputHistory = [];
 
-	this.me = new Player.Player(0, this.physicsEngine, this.worldState, renderer);
+	this.me = new Player(socket, {x:300, y:300}, Math.PI, this);
+	this.me.objectId = 0;
+	this.me.addToWorld(this.physicsEngine.world);
 
 	this.renderClock.start();
 	this.physicsClock.start();
+
 	
 }
 
 ClientWorld.prototype.physicsTick = function(){
 	this.physicsTickCounter++;
+
 
 	//TODO: Get keyboard state
 	var pressedKeys = KeyboardJS.activeKeys();
@@ -58,13 +61,14 @@ ClientWorld.prototype.physicsTick = function(){
 		sp: 	_.includes(pressedKeys, "space")?1:0
 	};
 
-	var inputState = new InputState.InputState(keys, this.physicsTickCounter);
+	var inputState = new InputState(keys, this.physicsTickCounter);
 	this.me.inputs.push(inputState);
+	this.me.recordCurrentState(this.physicsTickCounter);
 	this.me.applyInputState(inputState, this.physicsTickCounter);
 
     //Update physics for current user
-    //this.me.x+=1 ;
     Matter.Engine.update(this.physicsEngine, global.config.physicsClock_ms);
+
     //Matter.Engine.render(this.physicsEngine);
     
     //Send keyboard state to server
@@ -76,6 +80,7 @@ ClientWorld.prototype.physicsTick = function(){
 }
 
 ClientWorld.prototype.renderTick = function(){
+
 
 	var self = this;
 
@@ -135,7 +140,7 @@ ClientWorld.prototype.renderTick = function(){
 			var percentIn = (expectedServerTime - justBelow.time) / timeDiff;
 			//For all values, find the difference, multiply by percentIn and add to below state
 
-			this.worldState.setStateByInterpolation(justBelow, justAbove, percentIn, this.me.playerId);
+			this.worldState.setStateByInterpolation(justBelow, justAbove, percentIn, this.me.objectId);
 
 		}else{
 			//We have an above state but no below state - should never happen as we always keep two
@@ -159,11 +164,11 @@ ClientWorld.prototype.renderTick = function(){
 
 				this.worldState.setStateByExtrapolation(justBelow, 
 														justAbove, 
-														percentPast, this.me.playerId);
+														percentPast, this.me.objectId);
 
 			}else if(this.stateBuffer.length == 1){
 				//Just use this state
-				this.worldState.setState(this.stateBuffer[0], this.me.playerId);
+				this.worldState.setState(this.stateBuffer[0], this.me.objectId);
 			}else{
 				//There are no states - should never happen
 				//Just don't change anything I suppose
@@ -174,32 +179,33 @@ ClientWorld.prototype.renderTick = function(){
 
 
 	//Render
-	this.renderer.render();
+	global.renderer.render();
 }
 
 ClientWorld.prototype.receivedServerState = function(payload){
 
+
+	//console.log('Received state');
 	this.stateBuffer.push(payload);
 
-	if(this.me.playerId == 0){
-		this.me.playerId = payload.you;
+	if(this.me.objectId == 0){
+		this.me.objectId = payload.you;
 	}
 
 	var includedPlayers = [];
 
 	for(var index in payload.players){
 		var thisPlayer = payload.players[index];
-		includedPlayers.push(thisPlayer.playerId);
-		if(thisPlayer.playerId == this.me.playerId){
+		includedPlayers.push(thisPlayer.objectId);
+		if(thisPlayer.objectId == this.me.objectId){
 			if(payload.physicsTick >= 0){
-				this.me.client_updateFromServer(payload, thisPlayer, this.physicsTickCounter);
+				this.me.updateFromServer(payload, thisPlayer, this.physicsTickCounter);
 			}
 		}else{
-			var player = this.worldState.getPlayer(thisPlayer.playerId);
+			var player = this.worldState.getPlayer(thisPlayer.objectId);
 			if(typeof player == 'undefined'){
-				console.log('create player '+thisPlayer.playerId);
-				player = new Player.Player(thisPlayer.playerId, this.physicsEngine, this.worldState, this.renderer);
-				player.setState(thisPlayer);
+				player = new Player(false, thisPlayer.position, thisPlayer.angle, this);
+				player.objectId = thisPlayer.objectId;
 				this.worldState.addPlayer(player);
 			}/*else{
 				player.setState(thisPlayer);
@@ -211,4 +217,4 @@ ClientWorld.prototype.receivedServerState = function(payload){
 	
 }
 
-exports.ClientWorld = ClientWorld;
+module.exports = exports = ClientWorld;

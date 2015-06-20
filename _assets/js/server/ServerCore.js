@@ -11,7 +11,7 @@ var ServerCore = function(io){
 
 ServerCore.prototype.init = function(){
 
-	this.serverWorld = new ServerWorld.ServerWorld();
+	this.serverWorld = new ServerWorld();
 
 	var core = this;
 
@@ -20,30 +20,17 @@ ServerCore.prototype.init = function(){
 
 		console.log('a user connected '+socket.id);
 		
-		socket.playerId = UUID();
-		socket.emit('connected', {playerId : socket.playerId});
+		socket.emit('connected');
 
 		core.serverWorld.addPlayer(socket);
 
-		socket.on('disconnect', function(){
+		/*socket.on('disconnect', function(){
 			//User disconnected - remove from world
 			core.serverWorld.removePlayer(socket);
-		});
-		socket.on('message', function(message){
-			//Handle all messages
-			
-			switch (message.type){
-				case 2:
-					//Input message
-					core.serverWorld.handleInputMessage(socket.playerId, message.pl);
-					break;
-				default:
-					break;
-			}
-
-		});
+		});*/
+		
 	});
 
 }
 
-exports.ServerCore = ServerCore;
+module.exports = exports = ServerCore;
