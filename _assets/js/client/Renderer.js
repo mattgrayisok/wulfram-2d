@@ -1,4 +1,4 @@
-
+var PIXI = require('pixi.js');
 
 var Renderer = function(){
 	this.renderer = false;

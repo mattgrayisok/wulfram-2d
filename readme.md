@@ -12,12 +12,14 @@ Implemented:
 * Server reconciliation (difficult in a physics loop!)
 * Client side state interpolation (inc short buffer)
 * Client side state extrapolation (for buffer under-runs)
+* Converted players to pure JS OO - can extend into other objects now!
+* Shooting stuff (main gun - no damage currently)
 
 Todo:
 * Keep in mind authoritative client approach in case lag makes reconciliation break (https://answers.unrealengine.com/questions/58920/client-prediction-reconciliation-theory-for-physic.html). Seems ok for now.
-* Shooting stuff
 * Adjust renderer to follow player with camera
 * Bodies representing map boundaries
 * Map texture
-* Consider moving over an an OO framework so I can subclass physics based units
+* Waiting room
+* Team selection
 

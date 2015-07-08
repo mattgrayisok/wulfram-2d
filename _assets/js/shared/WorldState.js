@@ -1,7 +1,8 @@
 var _ = require('lodash');
-var Matter = require('matter-js');
+var Matter = require('matter-js/build/matter.js');
+var Tank = require('../shared/objects/Tank');
 
-var WorldState = function(){
+var WorldState = function(world){
 
 	this._state = {
 		objects : {},
@@ -10,6 +11,9 @@ var WorldState = function(){
 	};
 
 	this.previousObjectStates = {};
+	this.receivedStates = [];
+	this.stateMilliOffset = false;
+	this.parentWorld = world;
 
 }
 
@@ -29,11 +33,11 @@ WorldState.prototype.addPlayer = function(player){
 	var playerId = player.objectId;
 	this._state.players[playerId] = player;
 
-	if(player.socket){
-		player.socket.on('disconnect', function(){
-			self.removeObject(playerId);
+	/*if(global.isServer){
+		player.on('died', function(){
+			console.log('died');
 		});
-	}
+	}*/
 
 }
 
@@ -95,6 +99,132 @@ WorldState.prototype.removePlayersNotIn = function(list){
 	}
 }
 
+//Client only
+WorldState.prototype.addReceivedState = function(newWorldState){
+	this.receivedStates.push(newWorldState);
+
+	var includedPlayers = [];
+
+	//Create all new objects
+
+	//Players
+	for(var index in newWorldState.players){
+		var thisPlayer = newWorldState.players[index];
+		includedPlayers.push(thisPlayer.objectId);
+		
+		var player = this.getPlayer(thisPlayer.objectId);
+		if(typeof player == 'undefined'){
+			player = new Tank(thisPlayer.position, thisPlayer.angle, this.parentWorld);
+			player.objectId = thisPlayer.objectId;
+			this.addPlayer(player);
+		}
+		
+	}
+
+	this.removePlayersNotIn(includedPlayers);
+
+}
+
+//Client only
+WorldState.prototype.updateAllObjectsFromReceivedStates = function(){
+
+	var self = this;
+
+	//Not set offset yet and no buffer filled
+	if(this.stateMilliOffset === false && this.receivedStates.length < global.config.clientSideRenderBuffer){
+		// ? 
+		return;
+	}
+
+	//Buffer is filled enough. We need to set the offset from the first state in the buffer
+	if(this.stateMilliOffset === false){
+		this.stateMilliOffset = new Date().getTime() - this.receivedStates[0].time;
+	}
+
+	//Find what we expect the server time to be.
+	var expectedServerTime = new Date().getTime() - this.stateMilliOffset;
+
+	//Find the two states that surround that time
+	var justBelowIndex = false;
+	var justAboveIndex = false;
+	var justBelow = false;
+	var justAbove = false;
+
+
+	_.each(this.receivedStates, function(el, ind){
+		//If we are yet to find a state with a high enough time
+		if(expectedServerTime < el.time && justAboveIndex === false){
+			//Found the first one above expected time
+			if(ind > 0){
+				justBelowIndex = ind - 1;
+				justBelow = self.receivedStates[justBelowIndex];
+				justBelow.deleteMe = false;
+			}
+			justAboveIndex = ind;
+			justAbove = el;
+		}else if(justAboveIndex === false){
+			//Here we'll only see states pre expected server time
+			//Keep the final two states, even if they are in the past
+			if(ind < self.receivedStates.length - 2){
+				el.deleteMe = true;
+			}
+		}
+	});
+
+	//Delete any old ones
+	for(var i = self.receivedStates.length - 1; i >= 0; i--){
+		var el = self.receivedStates[i];
+		if("deleteMe" in el && el.deleteMe){
+			self.receivedStates.splice(i, 1);
+		} 
+	}
+
+
+	if(justAboveIndex !== false){
+		if(justBelowIndex !== false){
+			//We have an above state and a below state. Just interpolate between the two
+			var timeDiff = justAbove.time - justBelow.time;
+			var percentIn = (expectedServerTime - justBelow.time) / timeDiff;
+			//For all values, find the difference, multiply by percentIn and add to below state
+
+			this.setStateByInterpolation(justBelow, justAbove, percentIn);
+
+		}else{
+			//We have an above state but no below state - should never happen as we always keep two
+			//Just set state as the above state?
+			alert('Seem to have travelled into the past, which is weird');
+		}
+	}else{
+		if(justBelowIndex !== false){
+			//We have no above state, but do have a below state - should never happen as below is derived from above
+			//Just set state to be below state
+			alert('Seem to have a past but no future =/');
+		}else{
+			//We have neither
+			if(this.receivedStates.length >= 2){
+				//There are no states in front of expected time, but there are states to use
+				//Extrapolate out from the most recent two states
+				justBelow = this.receivedStates[this.receivedStates.length-2];
+				justAbove = this.receivedStates[this.receivedStates.length-1];
+				var timeDiff = justAbove.time - justBelow.time;
+				var percentPast = (expectedServerTime - justAbove.time) / timeDiff;
+
+				this.setStateByExtrapolation(justBelow, 
+														justAbove, 
+														percentPast);
+
+			}else if(this.receivedStates.length == 1){
+				//Just use this state
+				this.setState(this.receivedStates[0]);
+			}else{
+				//There are no states - should never happen
+				//Just don't change anything I suppose
+			}
+		}
+	}
+
+}
+
 WorldState.prototype.setState = function(state, exclude){
 	var self = this;
 
@@ -104,12 +234,10 @@ WorldState.prototype.setState = function(state, exclude){
 		var player = self.getPlayer(playerState.playerId);
 		player.setState(playerState);
 	}
-
 }
 
 WorldState.prototype.setStateByInterpolation = function(state1, state2, percent, exclude){
 	var self = this;
-
 	//Players
 	self.findMatchingStatesFromTwoStateCollections(state1.players, state2.players, "objectId", function(state1, state2, propertyValue){
 		var player = self.getPlayer(propertyValue);
@@ -155,9 +283,11 @@ WorldState.prototype.getAllPlayerBodies = function(excluding){
 	return toReturn;
 }
 
-WorldState.prototype.recordObjectStatesForPhysicsTick = function(tick){
 
-	//We just use this to compare to shooting against so we only need position and angle
+//Record the current state and assign it to the given tick
+//These are used for checking for shooting people later so we just need positions
+//Server only
+WorldState.prototype.recordObjectStatesForPhysicsTick = function(tick){
 
 	this.previousObjectStates[""+tick] = {objects : {}};
 	for(var objectId in this._state.objects){
@@ -194,6 +324,7 @@ WorldState.prototype.getPlayerBodiesForTick = function(tick, exclude){
 
 }
 
+//Uses the previousObjectStates array
 WorldState.prototype.getAllShootableBodiesForTick = function(tick, exclude){
 	var state = this.previousObjectStates[""+tick];
 	var self = this;

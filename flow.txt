@@ -1,0 +1,22 @@
+Server starts
+	- Creates world
+	- Creates player repo
+
+Client starts
+	- Connect to server
+	- Placed in repo
+	- Send back connected msg
+	- Sync up physics clocks
+	- Periodic team updates from server
+	- Display team selection
+	- User chooses team
+	- Sends message to server requesting placement against in-world spawn point
+	- Server creates new player in appropriate position
+	- Sends back tank object id, position, angle etc
+	- Client creates controllable player
+	- Client starts rendering top down view
+
+Player dies
+	- Server sends message to client
+	- Client sets sprite, stops taking input etc
+	- Sets timeout to switch back to the overview map

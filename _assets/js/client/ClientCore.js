@@ -1,5 +1,8 @@
 var Renderer 		= require('./Renderer');
 var ClientWorld 	= require('./ClientWorld');
+var OverviewMap 	= require('./OverviewMap');
+var LoadingScreen 	= require('./LoadingScreen');
+var Player 			= require('../shared/Player');
 
 var world = {};
 	//When loading, we store references to our
@@ -8,32 +11,57 @@ var world = {};
 var ClientCore = function(){
 
 	this.world = {};
+	this.clientWorld = false;
+	this.loadingScreen = false;
+	this.overviewMap = false;
+	this.player = false;
 
 }
 
 ClientCore.prototype.init = function(){
 
-	global.renderer = new Renderer();
-	renderer.initialise();
+	var self = this;
 
+	//Goto loading screen
+	this.gotoLoading();
+
+	//Connect to server
 	var socket = io();
+
+	//Create a simulation world
+	this.clientWorld = new ClientWorld();
+
+	//Create a player
+	this.player = new Player(socket, this.clientWorld);
 	
+	//The server has told us that we're connected
 	socket.on('connected', function(msg){
 	    //Create our game client instance.
-		world = new ClientWorld(socket);
-
-		socket.on('message', function(message){
-			switch (message.type){
-				case 3:
-					//State message
-					world.receivedServerState(message.pl);
-					break;
-				default:
-					break;
-			}
-		});
+	    //socket.emit('sync', 0);
+		self.gotoOverviewMap();
 	});
 
 }
+
+ClientCore.prototype.gotoLoading = function(){
+
+	if(this.loadingScreen == false){
+		this.loadingScreen = new LoadingScreen();
+	}
+
+	this.loadingScreen.show();
+
+}
+
+ClientCore.prototype.gotoOverviewMap = function(){
+
+	if(this.overviewMap == false){
+		this.overviewMap = new OverviewMap(this.clientWorld, this.player);
+	}
+
+	this.overviewMap.show();
+
+}
+
 
 module.exports = exports = ClientCore;

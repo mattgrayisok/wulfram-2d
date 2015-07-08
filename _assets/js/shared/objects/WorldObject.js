@@ -1,10 +1,13 @@
-var Matter 	= require('matter-js');
+var Matter = require('matter-js/build/matter.js');
 var _ 		= require('lodash');
 var UUID 	= require('node-uuid');
+var events = require('events');
 
 var WorldObject = function(position, angle, vertices, isStatic, renderLayer, parentWorld){
-	this.objectId = UUID();
+	
+	events.EventEmitter.call(this);
 
+	this.objectId = UUID();
 	this.vertices = vertices || [{x:0,y:0},{x:10,y:0},{x:10,y:10},{x:0,y:10}];
 	this.startPosition = position || {x:0, y:0};
 	this.isStatic = typeof isStatic == 'undefined' ? true : isStatic; 
@@ -40,11 +43,13 @@ var WorldObject = function(position, angle, vertices, isStatic, renderLayer, par
 
 		// move the sprite to the center of the screen
 		this.updateSpriteFromBody();
-		global.renderer[this.renderLayer].addChild(this.sprite);
+		//FIXME: figure out the best way to handle this
+		//global.renderer[this.renderLayer].addChild(this.sprite);
 	}
 
 }
 
+WorldObject.prototype = Object.create(events.EventEmitter.prototype);
 WorldObject.prototype.objectType = 'generic';
 
 WorldObject.prototype.addToWorld = function(world){
@@ -82,67 +87,15 @@ WorldObject.prototype.setState = function(state){
 WorldObject.prototype.setStateByInterpolation = function(state1, state2, percent){
 	Matter.Body.set(this.body, 'position', global.helpers.interpolateVector(state1.position, state2.position, percent));
 	Matter.Body.set(this.body, 'angle', global.helpers.interpolate(state1.angle, state2.angle, percent));
+	//console.log('Interpolating', global.helpers.interpolateVector(state1.position, state2.position, percent));
 	this.updateSpriteFromBody();
 }
 
 WorldObject.prototype.setStateByExtrapolation = function(state1, state2, percent){
 	Matter.Body.set(this.body, 'position', global.helpers.extrapolateVector(state1.position, state2.position, percent));
 	Matter.Body.set(this.body, 'angle', global.helpers.extrapolate(state1.angle, state2.angle, percent));
+	//console.log('Extrapolating', global.helpers.interpolateVector(state1.position, state2.position, percent));
 	this.updateSpriteFromBody();
-}
-
-WorldObject.prototype.recordCurrentState = function(tick){
-	var prevState = this.toMessage();
-	prevState.physicsTick = tick-1;
-	this.previousStates.push(prevState);
-}
-
-WorldObject.prototype.updateFromServer = function(state, playerState, currentTick){
-
-	//Check if we're in the correct position given the current tick state
-
-	var serverTick = state.physicsTick;
-
-	//console.log("I'm on "+currentTick+" received state for "+state.physicsTick);
-
-	for(var i = 0 ; i < this.previousStates.length; i++){
-		var prevState = this.previousStates[i];
-		if(prevState.physicsTick < serverTick){
-			prevState.removeMe = true;
-		}else if(prevState.physicsTick == serverTick){
-			//console.log('Found a state for this tick');
-			prevState.removeMe = true;
-			//Check we WERE in the right place
-
-			var xDelta = prevState.position.x - playerState.position.x;
-			var yDelta = prevState.position.y - playerState.position.y;
-			var angleDelta = prevState.angle - playerState.angle;
-
-			if(Math.abs(xDelta) > global.config.minimumPositionAdjustmentOffset || Math.abs(yDelta) > global.config.minimumPositionAdjustmentOffset || Math.abs(angleDelta) > global.config.minimumAngleAdjustmentOffset){
-				//console.log('adjusting by '+xDelta);
-				//Need to adjust current position
-				//var newPos = Matter.Vector.sub(this.body.position, {x:xDelta*global.config.serverAdjustmentReducer, y:yDelta*global.config.serverAdjustmentReducer});
-				//var newAngle = this.body.angle + angleDelta*global.config.serverAdjustmentReducer;
-
-				//Matter.Body.set(this.body, 'position', newPos);
-				//Matter.Body.set(this.body, 'angle', playerState.angle);
-
-				this.incorrectPositionX = xDelta;
-				this.incorrectPositionY = yDelta;
-				this.incorrectAngle = angleDelta;
-
-
-			}
-
-		}
-	}
-
-	for(var k = this.previousStates.length - 1 ; k >= 0; k--){
-		if(this.previousStates[k].removeMe){
-			this.previousStates.splice(k, 1);
-		}
-	}
-
 }
 
 WorldObject.prototype.toMessage = function(){
@@ -153,38 +106,14 @@ WorldObject.prototype.toMessage = function(){
 	};
 }
 
-WorldObject.prototype.reconcileTowardsServer = function(){
-
-	if(Math.abs(this.incorrectPositionX) > global.config.minimumPositionAdjustmentOffset 
-		|| Math.abs(this.incorrectPositionY) > global.config.minimumPositionAdjustmentOffset 
-		|| Math.abs(this.incorrectAngle) > global.config.minimumAngleAdjustmentOffset){
-
-		var changeX = this.incorrectPositionX*global.config.serverAdjustmentReducer;
-		var changeY = this.incorrectPositionY*global.config.serverAdjustmentReducer;
-		var changeAngle = this.incorrectAngle*global.config.serverAdjustmentReducer;
-
-		var newPos = Matter.Vector.sub(this.body.position, {x: changeX, y:changeY});
-		var newAngle = this.body.angle - changeAngle;
-
-		Matter.Body.set(this.body, 'position', newPos);
-		Matter.Body.set(this.body, 'angle', newAngle);
-
-		this.incorrectPositionX -= changeX;
-		this.incorrectPositionY -= changeY;
-		this.incorrectAngle -= changeAngle;
-	}
-
-}
-
 WorldObject.prototype.applyActionsForPhysicsTick = function(tick){
-	
-	
 	return;
 }
 
 WorldObject.prototype.remove = function(){
-	
+	//Remove from physics
 	Matter.World.remove(this.parentWorld.physicsEngine.world, this.body);
+	//Remove from renderer
 	if(global.isClient){
 	    global.renderer[this.renderLayer].removeChild(this.sprite);
 	}
