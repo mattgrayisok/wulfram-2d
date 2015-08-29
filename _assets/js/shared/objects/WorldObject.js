@@ -1,4 +1,4 @@
-var Matter = require('matter-js/build/matter.js');
+var Matter = require('matter-js/src/module/main.js');
 var _ 		= require('lodash');
 var UUID 	= require('node-uuid');
 var events = require('events');
@@ -44,7 +44,7 @@ var WorldObject = function(position, angle, vertices, isStatic, renderLayer, par
 		// move the sprite to the center of the screen
 		this.updateSpriteFromBody();
 		//FIXME: figure out the best way to handle this
-		//global.renderer[this.renderLayer].addChild(this.sprite);
+		global.renderer[this.renderLayer].addChild(this.sprite);
 	}
 
 }

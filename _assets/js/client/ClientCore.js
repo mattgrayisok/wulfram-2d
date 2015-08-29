@@ -2,6 +2,7 @@ var Renderer 		= require('./Renderer');
 var ClientWorld 	= require('./ClientWorld');
 var OverviewMap 	= require('./OverviewMap');
 var LoadingScreen 	= require('./LoadingScreen');
+var GameScreen 		= require('./GameScreen');
 var Player 			= require('../shared/Player');
 
 var world = {};
@@ -14,6 +15,7 @@ var ClientCore = function(){
 	this.clientWorld = false;
 	this.loadingScreen = false;
 	this.overviewMap = false;
+	this.gameScreen = false;	
 	this.player = false;
 
 }
@@ -23,6 +25,8 @@ ClientCore.prototype.init = function(){
 	var self = this;
 
 	//Goto loading screen
+	this.gameScreen = new GameScreen();
+
 	this.gotoLoading();
 
 	//Connect to server
@@ -33,6 +37,10 @@ ClientCore.prototype.init = function(){
 
 	//Create a player
 	this.player = new Player(socket, this.clientWorld);
+
+	this.player.on('added-to-world', function(){
+		self.gotoGameScreen();
+	})
 	
 	//The server has told us that we're connected
 	socket.on('connected', function(msg){
@@ -60,6 +68,16 @@ ClientCore.prototype.gotoOverviewMap = function(){
 	}
 
 	this.overviewMap.show();
+
+}
+
+ClientCore.prototype.gotoGameScreen = function(){
+
+	if(this.gameScreen == false){
+		this.gameScreen = new GameScreen();
+	}
+
+	this.gameScreen.show();
 
 }
 

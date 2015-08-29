@@ -71,7 +71,13 @@ gulp.task('js:bowerdebug', function() {
 
 
 function JScompile(watch) {
-	var bundler = watchify(browserify('./_assets/js/client.js', { debug: true }).transform(babelify.configure({ modules: 'common' })));
+
+	var bundler = false;
+	if(watch){
+		bundler = watchify(browserify('./_assets/js/client.js', { debug: true }).transform(babelify.configure({ modules: 'common' })));
+	}else{
+		bundler = browserify('./_assets/js/client.js', { debug: true }).transform(babelify.configure({ modules: 'common' }));
+	}
 
 	function rebundle() {
 		bundler.bundle()

@@ -3,7 +3,7 @@ var RenderClock 	= require('./RenderClock');
 var InputState 		= require('../shared/InputState');
 //var Player 			= require('../shared/objects/Player');
 var WorldState 		= require('../shared/WorldState');
-var Matter = require('matter-js/build/matter.js');
+var Matter = require('matter-js/src/module/main.js');
 
 var ClientWorld = function(){
 
@@ -23,7 +23,7 @@ var ClientWorld = function(){
 	this.me.addToWorld(this.physicsEngine.world);
 	*/
 
-	//this.renderClock.start();
+	this.renderClock.start();
 	this.physicsClock.start();
 	
 }
@@ -55,7 +55,9 @@ ClientWorld.prototype.renderTick = function(){
 
 
 	//Render
-	global.renderer.render();
+	if(global.renderer){
+		global.renderer.render();
+	}
 }
 
 ClientWorld.prototype.receivedServerState = function(payload){

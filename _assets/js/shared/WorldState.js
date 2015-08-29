@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var Matter = require('matter-js/build/matter.js');
+var Matter = require('matter-js/src/module/main.js');
 var Tank = require('../shared/objects/Tank');
 
 var WorldState = function(world){
@@ -14,6 +14,7 @@ var WorldState = function(world){
 	this.receivedStates = [];
 	this.stateMilliOffset = false;
 	this.parentWorld = world;
+	this.clientPlayer = false;
 
 }
 
@@ -112,11 +113,18 @@ WorldState.prototype.addReceivedState = function(newWorldState){
 		var thisPlayer = newWorldState.players[index];
 		includedPlayers.push(thisPlayer.objectId);
 		
-		var player = this.getPlayer(thisPlayer.objectId);
-		if(typeof player == 'undefined'){
-			player = new Tank(thisPlayer.position, thisPlayer.angle, this.parentWorld);
-			player.objectId = thisPlayer.objectId;
-			this.addPlayer(player);
+		if(thisPlayer.objectId == this.clientPlayer.objectId){
+			var player = this.getPlayer(thisPlayer.objectId);
+			this.clientPlayer.adjustForHistoryState(newWorldState.physicsTick, thisPlayer, this.parentWorld.physicsTickCounter);
+		}else{
+
+			var player = this.getPlayer(thisPlayer.objectId);
+			if(typeof player == 'undefined'){
+				player = new Tank(thisPlayer.position, thisPlayer.angle, this.parentWorld);
+				player.objectId = thisPlayer.objectId;
+				this.addPlayer(player);
+			}
+
 		}
 		
 	}

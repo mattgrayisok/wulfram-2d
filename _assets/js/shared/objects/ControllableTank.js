@@ -1,8 +1,8 @@
-var Matter = require('matter-js/build/matter.js');
+var Matter = require('matter-js/src/module/main.js');
 var _ 		= require('lodash');
 var Tank = require('./Tank');
 var Keyboard = require("game-keyboard");
-var keyMap = require("game-keyboard/key_map")["UK"];
+var keyMap = require("game-keyboard/key_map")["US"];
 var InputState = require('../InputState');
 
 
@@ -191,6 +191,7 @@ ControllableTank.prototype.addInputStateForPhysicsTick = function(inputState, ti
 ControllableTank.prototype.applyActionsForPhysicsTick = function(tick){
 	
 	//Apply input state for this tick if we're on client
+	//console.log(this.body.position.y);
 	if(global.isClient){
 		this.recordCurrentState(tick);
 		this.storeCurrentInputState(tick);
@@ -204,7 +205,7 @@ ControllableTank.prototype.applyActionsForPhysicsTick = function(tick){
 }
 
 ControllableTank.prototype.getLatestInputState = function(){
-	console.log(this.inputs);
+	//console.log(this.inputs);
 	return this.inputs[this.inputs.length-1];
 }
 

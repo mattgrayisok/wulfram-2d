@@ -3,6 +3,7 @@ var Helpers 		= require('./shared/Helpers');
 var ClientCore 		= require('./client/ClientCore');
 var events = require('events');
 
+console.log('Client starting');
 
 global.config = new Config();
 global.helpers = new Helpers();

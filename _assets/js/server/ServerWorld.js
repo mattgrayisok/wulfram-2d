@@ -2,7 +2,7 @@ var WorldState = require('../shared/WorldState');
 var ControllableTank = require('../shared/objects/ControllableTank');
 var PhysicsClock = require('../shared/PhysicsClock');
 var _ = require('lodash');
-var Matter = require('matter-js/build/matter.js');
+var Matter = require('matter-js/src/module/main.js');
 var Tank = require('../shared/objects/Tank');
 
 var ServerWorld = function(){
@@ -19,9 +19,9 @@ var ServerWorld = function(){
 
 	this.physicsClock.start();
 
-	this.tempPlayer = new Tank({x:400, y:400}, Math.PI, this);
+	/*this.tempPlayer = new Tank({x:400, y:400}, Math.PI, this);
 	this.tempPlayer.addToWorld(this.physicsEngine.world);
-	this.worldState.addPlayer(this.tempPlayer);
+	this.worldState.addPlayer(this.tempPlayer);*/
 
 }
 

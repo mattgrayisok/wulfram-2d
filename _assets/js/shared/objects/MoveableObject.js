@@ -1,4 +1,4 @@
-var Matter = require('matter-js/build/matter.js');
+var Matter = require('matter-js/src/module/main.js');
 var _ 		= require('lodash');
 var ShootableObject = require('./ShootableObject');
 

@@ -30,7 +30,7 @@ var Player = function(socket, world){
 		if(self.currentControllable !== false){
 			self.currentControllable.applyActionsForPhysicsTick(tick);
 			var lastMove = self.currentControllable.getLatestInputState();
-			console.log(lastMove);
+			//console.log(lastMove);
 			self.sendInputStateToServer(lastMove);
 		}
 	});
@@ -65,6 +65,7 @@ Player.prototype.initClient = function(){
 				self.world.worldState.addReceivedState(msg.pl);
 				break;
 			case 4:
+				//We have been added to the world
 				self.addControllableToWorld(msg.pl);
 				break;
 			case 5:
@@ -95,14 +96,18 @@ Player.prototype.addControllableToWorld = function(payload){
 	this.currentControllable = new ControllableTank(payload.entryPoint, payload.entryRotation, this.world, this);
 	this.currentControllable.objectId = payload.objectId;
 	this.currentControllable.addToWorld(this.world.physicsEngine.world);
+
+	this.world.worldState.clientPlayer = this.currentControllable;
 	//this.world.worldState.addPlayer(this.currentControllable);
+
+	this.emit('added-to-world');
 
 }
 
 Player.prototype.sendInputStateToServer = function(inputState){
 	var message = inputState.toMessage();
     message.physicsTickCounter = this.world.physicsTickCounter;
-    console.log('Sending inputs for tick '+ message.physicsTickCounter);
+    //console.log('Sending inputs for tick '+ message.physicsTickCounter);
     this.socket.emit('message', message);
 
 }
