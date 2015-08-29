@@ -1,4 +1,4 @@
-
+var PIXI = require('pixi.js');
 
 var Renderer = function(){
 	this.renderer = false;
@@ -7,9 +7,9 @@ var Renderer = function(){
 	this.world = false;
 }
 
-Renderer.prototype.initialise = function(){
-	this.renderer = PIXI.autoDetectRenderer($('html').width(), $('html').height(),{backgroundColor : 0x990000});
-	document.body.appendChild(this.renderer.view);
+Renderer.prototype.initialise = function(element){
+	this.renderer = PIXI.autoDetectRenderer(800, 800,{backgroundColor : 0x990000});
+	element.appendChild(this.renderer.view);
 
 	this.stage = new PIXI.Container();
 	this.hud = new PIXI.Container();
@@ -35,4 +35,4 @@ Renderer.prototype.render = function(){
 
 }
 
-exports.Renderer = Renderer;
+module.exports = exports = Renderer;

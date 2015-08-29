@@ -1,49 +1,35 @@
 var UUID 			= require('node-uuid');
 var ServerWorld 	= require('./ServerWorld');
+var PlayerRepo 		= require('./PlayerRepo');
+var Player 			= require('../shared/Player');
 
 var ServerCore = function(io){
 
-	this.socket = false;
 	this.io = io;
-	this.serverWorld = false;
 
+	this.serverWorld = new ServerWorld(this);
+	this.playerRepo = new PlayerRepo(this.serverWorld);
+	//TODO: Move update clock into player repo
 }
 
 ServerCore.prototype.init = function(){
 
-	this.serverWorld = new ServerWorld.ServerWorld();
-
+	var self = this;
 	var core = this;
 
 	this.io.on('connection', function(socket){
 
 
 		console.log('a user connected '+socket.id);
+
+		//Create player
+		//Player is responsible for receiving all further messages and proxying them appropriately
+		var thisPlayer = new Player(socket, self.serverWorld);
+
+		self.playerRepo.addPlayer(thisPlayer);
 		
-		socket.playerId = UUID();
-		socket.emit('connected', {playerId : socket.playerId});
-
-		core.serverWorld.addPlayer(socket);
-
-		socket.on('disconnect', function(){
-			//User disconnected - remove from world
-			core.serverWorld.removePlayer(socket);
-		});
-		socket.on('message', function(message){
-			//Handle all messages
-			
-			switch (message.type){
-				case 2:
-					//Input message
-					core.serverWorld.handleInputMessage(socket.playerId, message.pl);
-					break;
-				default:
-					break;
-			}
-
-		});
 	});
 
 }
 
-exports.ServerCore = ServerCore;
+module.exports = exports = ServerCore;

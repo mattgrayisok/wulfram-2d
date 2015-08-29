@@ -18,4 +18,4 @@ Helpers.prototype.extrapolateVector = function(val1, val2, percent){
 	return { x : val2.x + ((val2.x - val1.x) * percent) , y : val2.y + ((val2.y - val1.y) * percent)};
 }
 
-exports.Helpers = Helpers;
+module.exports = exports = Helpers;

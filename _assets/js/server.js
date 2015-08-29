@@ -6,13 +6,14 @@ var io 			= require('socket.io')(http);
 var ServerCore 	= require('./server/ServerCore');
 var Config 		= require('./shared/Config');
 var Helpers 		= require('./shared/Helpers');
+var events = require('events');
 
 
-global.config = new Config.Config();
-global.helpers = new Helpers.Helpers();
+global.config = new Config();
+global.helpers = new Helpers();
 global.isServer = true;
 global.isClient = false;
-
+global.pubsub = new events.EventEmitter();
 
 function init() {
 	app.get('/', function(req, res){
@@ -26,7 +27,7 @@ function init() {
         res.sendFile( file, { root: "."} );
     });
 
-    var server = new ServerCore.ServerCore(io);
+    var server = new ServerCore(io);
     server.init();
 
 	http.listen(3000, function(){

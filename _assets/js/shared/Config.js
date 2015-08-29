@@ -6,11 +6,14 @@ var Config = function(){
 	
 	this.inputToSimulationBuffer = 5; //A server side buffer for input events from the clients
 	this.clientSideRenderBuffer = 2;
-	this.serverAdjustmentReducer = 0.1;	//Used to slowly bring the player into the correct position rather than suddenly shift it
+	this.serverAdjustmentReducer = 0.05;	//Used to slowly bring the player into the correct position rather than suddenly shift it
 	this.minimumPositionAdjustmentOffset = 1;
 	this.minimumAngleAdjustmentOffset = 0.1;
 
 	this.shootingPastOffset = 10; // The number of physics ticks to go into the past when simulating shooting
+
+	this.playerStartHealth = 100;
+	this.playerVertices = [{ x: -25, y: -25 }, { x: 0, y: 25 }, { x: 25, y: -25 }];
 
 	this.playerForwardThrust = 0.6;
 	this.playerReverseThrust = 0.3;
@@ -26,4 +29,4 @@ var Config = function(){
 	this.playerMainGunDamage = 1;
 }
 
-exports.Config = Config;
+module.exports = exports = Config;
