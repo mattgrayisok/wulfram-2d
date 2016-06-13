@@ -1,5 +1,7 @@
 # A Game
 
+> Put on hold while I try to abstract out a networking library
+
 A game helping me to learn some node.js and the basics of real time, online multiplayer.
 
 Will become a port of Wulfram II probably, unless I have an original idea or two.
